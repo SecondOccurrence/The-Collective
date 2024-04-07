@@ -24,33 +24,17 @@ for(const folder of commandFolders) {
     }
 }
 
-client.once(Events.ClientReady, readyClient => {
-    console.log(`Logged in as ${readyClient.user.tag}`);
-});
-
-client.on(Events.InteractionCreate, async interaction => {
-    if(!interaction.isChatInputCommand()) {
-        return;
+const eventsPath = path.join(__dirname, "events");
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith(".js"));
+for(const file of eventFiles) {
+    const filePath = path.join(eventsPath, file);
+    const event = require(filePath);
+    if(event.once) {
+        client.once(event.name, (...args) => event.execute(...args));
     }
-
-    const command = interaction.client.commands.get(interaction.commandName);
-
-    if(!command) {
-        return;
+    else {
+        client.on(event.name, (...args) => event.execute(...args));
     }
-
-    try {
-        await command.execute(interaction);
-    }
-    catch(error) {
-        console.error(error);
-        if(interaction.replied || interaction.deferred) {
-            await interaction.reply({ content: "Error occurred whilst execuing the command", ephemeral: true });
-        }
-        else {
-            await interaction.reply({ content: "Couldnt execute this command", ephemeral: true });
-        }
-    }
-});
+}
 
 client.login(token);
